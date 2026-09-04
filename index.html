@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Quản Lý Xe</title>
+<title>Quản Lý Xe Unis</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Firebase (compat SDK, dùng chung một CSDL Firestore cho mọi thiết bị) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -399,6 +399,69 @@
 
   .required:after{content:" *";color:var(--bad);}
 
+  /* Upload ảnh */
+  .img-upload-box{
+    border:2px dashed var(--line);
+    border-radius:10px;
+    padding:20px 14px;
+    text-align:center;
+    cursor:pointer;
+    background:#fbfcfd;
+    transition:border-color .12s, background .12s;
+  }
+  .img-upload-box:hover{border-color:var(--teal);background:var(--teal-light);}
+  .img-upload-box .icon{font-size:26px;margin-bottom:6px;}
+  .img-upload-box .hint{font-size:12px;color:var(--text-dim);margin-top:3px;}
+  .img-preview-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(96px,1fr));
+    gap:10px;
+    margin-top:12px;
+  }
+  .img-preview-item{
+    position:relative;
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    aspect-ratio:1/1;
+    background:#eef1f3;
+  }
+  .img-preview-item img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .img-preview-item .remove-btn{
+    position:absolute;top:4px;right:4px;
+    width:22px;height:22px;border-radius:50%;
+    background:rgba(14,35,52,.75);color:#fff;
+    border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;line-height:1;
+  }
+  .img-count-note{font-size:12.5px;margin-top:8px;color:var(--text-dim);}
+  .img-count-note.ok{color:var(--ok);}
+  .img-count-note.warn{color:var(--bad);}
+
+  .detail-images{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(100px,1fr));
+    gap:10px;
+    margin:10px 0 16px 0;
+  }
+  .detail-img-item{
+    border-radius:8px;overflow:hidden;border:1px solid var(--line);
+    aspect-ratio:1/1;position:relative;background:#eef1f3;
+  }
+  .detail-img-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+  .detail-img-item a.dl-btn{
+    position:absolute;bottom:4px;right:4px;
+    background:rgba(14,35,52,.75);color:#fff;
+    border-radius:6px;padding:3px 6px;font-size:11px;text-decoration:none;
+  }
+  .table-img-badge{
+    display:inline-flex;align-items:center;gap:3px;
+    font-size:12px;color:var(--text-dim);
+  }
+
   @media (max-width:560px){
     .field-grid{grid-template-columns:1fr;}
     .detail-grid{grid-template-columns:1fr 1fr;}
@@ -413,7 +476,7 @@
   <div class="header-top">
     <div class="logo-badge">QLX</div>
     <div>
-      <h1>Quản Lý Xe</h1>
+      <h1>Quản Lý Xe Unis</h1>
       <p>Kiểm tra & theo dõi tình trạng phương tiện</p>
     </div>
   </div>
@@ -459,6 +522,18 @@
       <div id="checklistFormArea"></div>
     </div>
 
+    <div class="card">
+      <h2><span class="num">3</span>Hình ảnh xe</h2>
+      <div class="img-upload-box" onclick="document.getElementById('imgFileInput').click()">
+        <div class="icon">📷</div>
+        <div><b>Bấm để chọn hoặc chụp ảnh xe</b></div>
+        <div class="hint">Chụp đồng hồ kilomet, chụp xe.</div>
+      </div>
+      <input type="file" id="imgFileInput" accept="image/*" multiple capture="environment" style="display:none;" onchange="handleImageSelect(event)">
+      <div class="img-preview-grid" id="imgPreviewGrid"></div>
+      <div class="img-count-note" id="imgCountNote">Chưa chọn hình ảnh nào.</div>
+    </div>
+
     <div class="submit-bar">
       <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitCheck()">Gửi kiểm tra</button>
     </div>
@@ -489,6 +564,8 @@
         <button id="subBtnList" class="active" onclick="switchAdminTab('list')">Danh sách kiểm tra</button>
         <button id="subBtnVehicle" onclick="switchAdminTab('vehicle')">Theo xe</button>
         <button id="subBtnChecklist" onclick="switchAdminTab('checklist')">Danh mục Check list</button>
+        <button id="subBtnReport" onclick="switchAdminTab('report')">Báo cáo tổng quan</button>
+        <button id="subBtnCleanup" onclick="switchAdminTab('cleanup')">Xóa ảnh cũ</button>
         <button class="btn-outline" style="border-radius:20px;margin-left:auto;padding:8px 14px;font-size:13px;" onclick="doLogout()">Đăng xuất</button>
       </div>
 
@@ -528,7 +605,7 @@
             <table id="recordsTable">
               <thead>
                 <tr>
-                  <th>Ngày</th><th>Giờ</th><th>Biển số</th><th>Họ tên</th><th>Chi nhánh</th><th>Km</th><th>Bất thường</th><th></th>
+                  <th>Ngày</th><th>Giờ</th><th>Biển số</th><th>Họ tên</th><th>Chi nhánh</th><th>Km</th><th>Ảnh</th><th>Bất thường</th><th></th>
                 </tr>
               </thead>
               <tbody id="recordsTableBody"></tbody>
@@ -576,6 +653,37 @@
         <div class="card">
           <h2><span class="num">☰</span>Danh mục hiện có</h2>
           <div id="checklistAdminArea"></div>
+        </div>
+      </div>
+
+      <!-- Báo cáo tổng quan -->
+      <div id="admin-report" class="admin-sub" style="display:none;">
+        <div id="reportArea"></div>
+      </div>
+
+      <!-- Xóa ảnh cũ -->
+      <div id="admin-cleanup" class="admin-sub" style="display:none;">
+        <div class="card">
+          <h2><span class="num">🗑</span>Xóa hình ảnh theo thời gian</h2>
+          <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 14px 0;">
+            Chọn khoảng thời gian để xóa toàn bộ hình ảnh đính kèm của các phiếu kiểm tra trong khoảng đó, giúp giảm nhẹ dung lượng lưu trữ.
+            Dữ liệu kiểm tra (checklist, thông tin xe...) vẫn được giữ nguyên, chỉ hình ảnh bị xóa khỏi bộ nhớ lưu trữ.
+          </p>
+          <div class="toolbar">
+            <div class="field">
+              <label>Từ ngày</label>
+              <input type="date" id="cleanupFrom">
+            </div>
+            <div class="field">
+              <label>Đến ngày</label>
+              <input type="date" id="cleanupTo">
+            </div>
+            <div class="field" style="flex:0;">
+              <label>&nbsp;</label>
+              <button class="btn btn-outline" onclick="previewCleanup()">Xem trước</button>
+            </div>
+          </div>
+          <div id="cleanupPreview"></div>
         </div>
       </div>
     </div>
@@ -685,6 +793,68 @@ function showConnError(){
 /* current answer state for the check form: {itemId: {value:'opt1'|'opt2', note:''}} */
 let currentAnswers = {};
 
+/* Ảnh đã chọn cho phiếu kiểm tra hiện tại: [{file, previewUrl}] */
+const MIN_IMAGES = 2;
+let selectedImages = [];
+
+function handleImageSelect(event){
+  const files = Array.from(event.target.files || []);
+  files.forEach(file=>{
+    if(!file.type.startsWith('image/')) return;
+    if(file.size > 15*1024*1024){ alert(`Ảnh "${file.name}" quá lớn (tối đa 15MB).`); return; }
+    selectedImages.push({file, previewUrl: URL.createObjectURL(file)});
+  });
+  event.target.value = ''; // cho phép chọn lại cùng 1 file nếu cần
+  renderImagePreviews();
+}
+function removeImage(idx){
+  URL.revokeObjectURL(selectedImages[idx].previewUrl);
+  selectedImages.splice(idx,1);
+  renderImagePreviews();
+}
+function renderImagePreviews(){
+  const grid = document.getElementById('imgPreviewGrid');
+  grid.innerHTML = selectedImages.map((img,idx)=>`
+    <div class="img-preview-item">
+      <img src="${img.previewUrl}" alt="Ảnh xe ${idx+1}">
+      <button type="button" class="remove-btn" onclick="removeImage(${idx})" title="Xóa ảnh">✕</button>
+    </div>
+  `).join('');
+  const note = document.getElementById('imgCountNote');
+  const n = selectedImages.length;
+  if(n===0){
+    note.textContent = 'Chưa chọn hình ảnh nào.';
+    note.className = 'img-count-note warn';
+  } else if(n < MIN_IMAGES){
+    note.textContent = `Đã chọn ${n} ảnh — cần thêm tối thiểu ${MIN_IMAGES - n} ảnh nữa.`;
+    note.className = 'img-count-note warn';
+  } else {
+    note.textContent = `Đã chọn ${n} ảnh.`;
+    note.className = 'img-count-note ok';
+  }
+}
+function resetImageSelection(){
+  selectedImages.forEach(img=>URL.revokeObjectURL(img.previewUrl));
+  selectedImages = [];
+  renderImagePreviews();
+}
+
+/* Tải ảnh lên Firebase Storage, trả về mảng [{url, path, name}] */
+async function uploadImages(recordId, onProgress){
+  const results = [];
+  for(let i=0;i<selectedImages.length;i++){
+    const {file} = selectedImages[i];
+    onProgress(i+1, selectedImages.length);
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `vehicle-images/${recordId}/${Date.now()}_${i}_${safeName}`;
+    const ref = storage.ref().child(path);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    results.push({url, path, name: file.name});
+  }
+  return results;
+}
+
 /* ============================================================
    TAB SWITCHING
    ============================================================ */
@@ -697,15 +867,19 @@ function switchTab(tab){
 }
 
 async function switchAdminTab(sub){
-  ['list','vehicle','checklist'].forEach(s=>{
+  ['list','vehicle','checklist','report','cleanup'].forEach(s=>{
     document.getElementById('admin-'+s).style.display = (s===sub)?'block':'none';
   });
   document.getElementById('subBtnList').classList.toggle('active', sub==='list');
   document.getElementById('subBtnVehicle').classList.toggle('active', sub==='vehicle');
   document.getElementById('subBtnChecklist').classList.toggle('active', sub==='checklist');
+  document.getElementById('subBtnReport').classList.toggle('active', sub==='report');
+  document.getElementById('subBtnCleanup').classList.toggle('active', sub==='cleanup');
   if(sub==='list'){ await renderRecordsTable(); }
   if(sub==='vehicle'){ recordsCache = await loadRecords(); populateVehicleSelectOptions(); renderVehicleHistory(); }
   if(sub==='checklist'){ checklistCache = await loadChecklist(); renderChecklistAdmin(); }
+  if(sub==='report'){ recordsCache = await loadRecords(); renderVehicleReport(); }
+  if(sub==='cleanup'){ recordsCache = await loadRecords(); document.getElementById('cleanupPreview').innerHTML=''; }
 }
 
 /* ============================================================
@@ -758,6 +932,11 @@ async function submitCheck(){
     alert('Vui lòng điền đầy đủ thông tin (Họ tên, SĐT, Chi nhánh, Biển số, Km).');
     return;
   }
+  if(selectedImages.length < MIN_IMAGES){
+    alert(`Vui lòng chọn tối thiểu ${MIN_IMAGES} hình ảnh xe trước khi gửi.`);
+    document.getElementById('imgFileInput').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
   const list = checklistCache;
   for(const item of list){
     if(!currentAnswers[item.id] || !currentAnswers[item.id].value){
@@ -768,8 +947,26 @@ async function submitCheck(){
   }
 
   const now = new Date();
+  const recordId = genId();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+
+  let images = [];
+  try{
+    btn.textContent = `Đang tải ảnh (0/${selectedImages.length})...`;
+    images = await uploadImages(recordId, (done,total)=>{
+      btn.textContent = `Đang tải ảnh (${done}/${total})...`;
+    });
+  }catch(e){
+    console.error('Lỗi tải ảnh lên:', e);
+    alert('Không thể tải hình ảnh lên. Vui lòng kiểm tra kết nối mạng và thử lại.');
+    btn.disabled = false;
+    btn.textContent = 'Gửi kiểm tra';
+    return;
+  }
+
   const record = {
-    id: genId(),
+    id: recordId,
     createdAt: now.toISOString(),
     date: toDateStr(now),
     time: toTimeStr(now),
@@ -778,11 +975,10 @@ async function submitCheck(){
       id:item.id, label:item.label, opt1:item.opt1, opt2:item.opt2,
       value: currentAnswers[item.id].value,
       note: currentAnswers[item.id].note || ''
-    }))
+    })),
+    images: images
   };
 
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
   btn.textContent = 'Đang gửi...';
   const ok = await addRecordToDb(record);
   btn.disabled = false;
@@ -799,6 +995,7 @@ async function submitCheck(){
   document.getElementById('f_chinhanh').value='';
   document.getElementById('f_bienso').value='';
   document.getElementById('f_km').value='';
+  resetImageSelection();
   checklistCache = await loadChecklist();
   renderChecklistForm();
   window.scrollTo({top:0, behavior:'smooth'});
@@ -885,6 +1082,7 @@ async function renderRecordsTable(){
   document.getElementById('recordsEmpty').style.display = records.length===0 ? 'block':'none';
   tbody.innerHTML = records.map(r=>{
     const n = countAbnormal(r);
+    const imgCount = (r.images||[]).length;
     return `<tr>
       <td>${formatDateVN(r.date)}</td>
       <td>${r.time}</td>
@@ -892,6 +1090,7 @@ async function renderRecordsTable(){
       <td>${escapeHtml(r.hoTen)}</td>
       <td>${escapeHtml(r.chiNhanh)}</td>
       <td>${escapeHtml(r.km)}</td>
+      <td><span class="table-img-badge">📷 ${imgCount}</span></td>
       <td><span class="badge-count ${n>0?'badge-n':'badge-0'}">${n}</span></td>
       <td><button class="btn btn-outline btn-sm" onclick="viewDetail('${r.id}')">Xem</button></td>
     </tr>`;
@@ -931,6 +1130,7 @@ function viewDetail(recordId){
   const r = recordsCache.find(x=>x.id===recordId);
   if(!r) return;
   const n = countAbnormal(r);
+  const images = r.images || [];
   const html = `
     <h3>Chi tiết kiểm tra xe ${r.bienSo}</h3>
     <div class="detail-grid">
@@ -941,6 +1141,17 @@ function viewDetail(recordId){
       <div><span>Biển số</span>${escapeHtml(r.bienSo)}</div>
       <div><span>Kilomet</span>${escapeHtml(r.km)}</div>
     </div>
+    ${images.length>0 ? `
+      <h4 style="margin:0 0 8px 0;font-size:13px;color:var(--navy);">Hình ảnh xe (${images.length})</h4>
+      <div class="detail-images">
+        ${images.map(img=>`
+          <div class="detail-img-item">
+            <img src="${img.url}" alt="${escapeHtml(img.name||'Ảnh xe')}" onclick="window.open('${img.url}','_blank')">
+            <a class="dl-btn" href="${img.url}" target="_blank" rel="noopener" download="${escapeHtml(img.name||'anh-xe.jpg')}" title="Tải về">⭳ Tải</a>
+          </div>
+        `).join('')}
+      </div>
+    ` : `<p style="font-size:12.5px;color:var(--text-dim);margin:0 0 14px 0;">Không có hình ảnh đính kèm.</p>`}
     ${n>0 ? `<div class="summary-box"><h4>Bất thường ghi nhận (${n})</h4><ul>${
       r.checklist.filter(c=>c.value==='opt2').map(c=>`<li>${escapeHtml(c.label)}${c.note?` — ${escapeHtml(c.note)}`:''}</li>`).join('')
     }</ul></div>` : ''}
@@ -990,13 +1201,15 @@ function renderSummaryPanelInto(area, records, plate){
   }
   const tableHtml = `<div class="card"><h2><span class="num">☰</span>Lịch sử kiểm tra (${records.length} lượt)</h2>
     <div class="table-wrap"><table>
-      <thead><tr><th>Ngày</th><th>Giờ</th><th>Người kiểm tra</th><th>Chi nhánh</th><th>Km</th><th>Bất thường</th><th></th></tr></thead>
+      <thead><tr><th>Ngày</th><th>Giờ</th><th>Người kiểm tra</th><th>Chi nhánh</th><th>Km</th><th>Ảnh</th><th>Bất thường</th><th></th></tr></thead>
       <tbody>
         ${records.map(r=>{
           const n = countAbnormal(r);
+          const imgCount = (r.images||[]).length;
           return `<tr>
             <td>${formatDateVN(r.date)}</td><td>${r.time}</td><td>${escapeHtml(r.hoTen)}</td>
             <td>${escapeHtml(r.chiNhanh)}</td><td>${escapeHtml(r.km)}</td>
+            <td><span class="table-img-badge">📷 ${imgCount}</span></td>
             <td><span class="badge-count ${n>0?'badge-n':'badge-0'}">${n}</span></td>
             <td><button class="btn btn-outline btn-sm" onclick="viewDetail('${r.id}')">Xem</button></td>
           </tr>`;
@@ -1005,6 +1218,132 @@ function renderSummaryPanelInto(area, records, plate){
     </table></div>
   </div>`;
   area.innerHTML = summaryHtml + tableHtml;
+}
+
+/* ============================================================
+   BÁO CÁO TỔNG QUAN CÁC XE
+   ============================================================ */
+function renderVehicleReport(){
+  const area = document.getElementById('reportArea');
+  if(recordsCache.length===0){
+    area.innerHTML = '<div class="card"><div class="empty-state">Chưa có dữ liệu kiểm tra nào.</div></div>';
+    return;
+  }
+  const byPlate = {};
+  recordsCache.forEach(r=>{
+    if(!byPlate[r.bienSo]) byPlate[r.bienSo] = [];
+    byPlate[r.bienSo].push(r);
+  });
+  const plates = Object.keys(byPlate).sort();
+  const totalRecords = recordsCache.length;
+  const totalAbnormal = recordsCache.reduce((s,r)=>s+countAbnormal(r),0);
+  const totalImages = recordsCache.reduce((s,r)=>s+(r.images||[]).length,0);
+
+  const overviewHtml = `<div class="card">
+    <h2><span class="num">Σ</span>Tổng quan chung</h2>
+    <div class="field-grid">
+      <div class="field"><label>Tổng số xe</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${plates.length}</div></div>
+      <div class="field"><label>Tổng lượt kiểm tra</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${totalRecords}</div></div>
+      <div class="field"><label>Tổng bất thường ghi nhận</label><div style="font-size:20px;font-weight:700;color:var(--bad);">${totalAbnormal}</div></div>
+      <div class="field"><label>Tổng số ảnh đang lưu trữ</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${totalImages}</div></div>
+    </div>
+  </div>`;
+
+  const rows = plates.map(p=>{
+    const recs = byPlate[p].slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+    const latest = recs[0];
+    const abnormalTotal = recs.reduce((s,r)=>s+countAbnormal(r),0);
+    const imgTotal = recs.reduce((s,r)=>s+(r.images||[]).length,0);
+    return `<tr>
+      <td><b>${escapeHtml(p)}</b></td>
+      <td>${recs.length}</td>
+      <td>${formatDateVN(latest.date)}</td>
+      <td>${escapeHtml(latest.km)}</td>
+      <td><span class="badge-count ${abnormalTotal>0?'badge-n':'badge-0'}">${abnormalTotal}</span></td>
+      <td>${imgTotal}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="jumpToVehicle('${p.replace(/'/g,"\\'")}')">Xem chi tiết</button></td>
+    </tr>`;
+  }).join('');
+
+  const tableHtml = `<div class="card">
+    <h2><span class="num">☰</span>Tổng quan theo từng xe</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Biển số</th><th>Số lượt KT</th><th>Lần KT gần nhất</th><th>Km gần nhất</th><th>Tổng bất thường</th><th>Tổng ảnh</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+
+  area.innerHTML = overviewHtml + tableHtml;
+}
+async function jumpToVehicle(plate){
+  await switchAdminTab('vehicle');
+  document.getElementById('vehicleSelect').value = plate;
+  renderVehicleHistory();
+}
+
+/* ============================================================
+   XÓA HÌNH ẢNH THEO THỜI GIAN (GIẢM DUNG LƯỢNG LƯU TRỮ)
+   ============================================================ */
+function getRecordsInCleanupRange(){
+  const from = document.getElementById('cleanupFrom').value;
+  const to = document.getElementById('cleanupTo').value;
+  if(!from || !to) return null;
+  return recordsCache.filter(r=> r.date>=from && r.date<=to && (r.images||[]).length>0);
+}
+function previewCleanup(){
+  const box = document.getElementById('cleanupPreview');
+  const records = getRecordsInCleanupRange();
+  if(records===null){
+    box.innerHTML = '<p style="color:var(--bad);font-size:13px;margin-top:10px;">Vui lòng chọn đầy đủ Từ ngày và Đến ngày.</p>';
+    return;
+  }
+  if(records.length===0){
+    box.innerHTML = '<div class="empty-state">Không có hình ảnh nào trong khoảng thời gian đã chọn.</div>';
+    return;
+  }
+  const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
+  const from = document.getElementById('cleanupFrom').value;
+  const to = document.getElementById('cleanupTo').value;
+  box.innerHTML = `
+    <div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
+      <h4 style="color:var(--navy);">Sẽ xóa ${totalImages} hình ảnh của ${records.length} phiếu kiểm tra (từ ${formatDateVN(from)} đến ${formatDateVN(to)})</h4>
+      <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Dữ liệu checklist và thông tin kiểm tra vẫn được giữ nguyên, chỉ hình ảnh bị xóa khỏi bộ nhớ lưu trữ. Hành động này không thể hoàn tác.</p>
+    </div>
+    <button class="btn btn-danger btn-block" onclick="confirmCleanupImages()">🗑 Xác nhận xóa ${totalImages} hình ảnh</button>
+  `;
+}
+async function confirmCleanupImages(){
+  const records = getRecordsInCleanupRange();
+  if(!records || records.length===0) return;
+  const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
+  if(!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${totalImages} hình ảnh của ${records.length} phiếu kiểm tra? Hành động này không thể hoàn tác.`)) return;
+
+  const box = document.getElementById('cleanupPreview');
+  box.innerHTML = '<p style="font-size:13px;color:var(--text-dim);margin-top:10px;">Đang xóa hình ảnh, vui lòng đợi...</p>';
+
+  let done = 0, failed = 0;
+  for(const r of records){
+    const images = r.images || [];
+    for(const img of images){
+      try{
+        if(img.path){ await storage.ref().child(img.path).delete(); }
+        done++;
+      }catch(e){
+        console.error('Lỗi xóa ảnh:', img.path, e);
+        failed++;
+      }
+    }
+    try{
+      await RECORDS_COL.doc(r.id).update({images: []});
+    }catch(e){
+      console.error('Lỗi cập nhật phiếu kiểm tra sau khi xóa ảnh:', r.id, e);
+    }
+  }
+  recordsCache = await loadRecords();
+  box.innerHTML = `<div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
+    <h4 style="color:var(--navy);">Hoàn tất</h4>
+    <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Đã xóa ${done} hình ảnh${failed>0?`, ${failed} ảnh gặp lỗi (có thể đã bị xóa trước đó)`:''}.</p>
+  </div>`;
 }
 
 /* ============================================================
@@ -1113,6 +1452,8 @@ function exportExcel(){
     const notes = r.checklist.filter(c=>c.note).map(c=>`${c.label}: ${c.note}`).join(' | ');
     row['Tổng hợp bất thường'] = notes;
     row['Số lượng bất thường'] = countAbnormal(r);
+    row['Số lượng ảnh'] = (r.images||[]).length;
+    row['Link hình ảnh'] = (r.images||[]).map(img=>img.url).join(' | ');
     return row;
   });
 
