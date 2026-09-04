@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Quản Lý Xe</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase (compat SDK, dùng chung một CSDL Firestore cho mọi thiết bị) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVlQgWc5Vrz3hLM1Sl7OkMefqE7T1v5NI",
+    authDomain: "ql-xe-1522f.firebaseapp.com",
+    projectId: "ql-xe-1522f",
+    storageBucket: "ql-xe-1522f.firebasestorage.app",
+    messagingSenderId: "153832764269",
+    appId: "1:153832764269:web:bbd164fc86d37a65d56064"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+</script>
+<style>
+  :root{
+    --navy:#16324a;
+    --navy-deep:#0e2334;
+    --teal:#1c7c6e;
+    --teal-light:#e3f3f0;
+    --ok:#1c7c6e;
+    --bad:#c0392b;
+    --bad-light:#fdecea;
+    --amber:#b7791f;
+    --bg:#f2f4f6;
+    --card:#ffffff;
+    --line:#e0e4e8;
+    --text:#1b2733;
+    --text-dim:#5c6b78;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.45;
+    padding-bottom:40px;
+  }
+  a{color:inherit;}
+
+  /* Header */
+  header.app-header{
+    background:linear-gradient(180deg,var(--navy) 0%, var(--navy-deep) 100%);
+    color:#fff;
+    padding:18px 16px 0 16px;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  .header-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    max-width:900px;
+    margin:0 auto;
+  }
+  .logo-badge{
+    width:38px;height:38px;border-radius:9px;
+    background:var(--teal);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:15px;flex-shrink:0;
+    letter-spacing:.5px;
+  }
+  .header-top h1{
+    font-size:18px;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  .header-top p{
+    margin:1px 0 0 0;
+    font-size:12px;
+    color:#b9c8d3;
+  }
+  nav.tabs{
+    max-width:900px;
+    margin:14px auto 0 auto;
+    display:flex;
+    gap:4px;
+  }
+  nav.tabs button{
+    flex:1;
+    background:transparent;
+    border:none;
+    color:#b9c8d3;
+    padding:11px 8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition:color .15s, border-color .15s;
+  }
+  nav.tabs button.active{
+    color:#fff;
+    border-bottom-color:var(--teal);
+  }
+
+  main{
+    max-width:900px;
+    margin:0 auto;
+    padding:18px 14px 60px 14px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:15px;
+    margin:0 0 14px 0;
+    color:var(--navy);
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .num{
+    background:var(--navy);
+    color:#fff;
+    width:22px;height:22px;
+    border-radius:6px;
+    font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+
+  .field-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .field.full{grid-column:1/-1;}
+  .field label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-dim);
+  }
+  .field input, .field select, .field textarea{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 11px;
+    font-size:14.5px;
+    font-family:inherit;
+    background:#fbfcfd;
+    color:var(--text);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none;
+    border-color:var(--teal);
+    background:#fff;
+  }
+
+  /* Checklist rows */
+  .check-row{
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:12px;
+    margin-bottom:10px;
+    background:#fbfcfd;
+  }
+  .check-row.answered-bad{
+    border-color:#f1c1bb;
+    background:var(--bad-light);
+  }
+  .check-row.answered-ok{
+    border-color:#c7e6df;
+    background:var(--teal-light);
+  }
+  .check-row .label{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:9px;
+    color:var(--text);
+  }
+  .opt-group{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .opt-btn{
+    flex:1;
+    text-align:center;
+    padding:10px 6px;
+    border-radius:7px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    color:var(--text-dim);
+    user-select:none;
+    transition:all .12s;
+  }
+  .opt-btn.opt1.selected{
+    border-color:var(--ok);
+    background:var(--teal-light);
+    color:var(--ok);
+  }
+  .opt-btn.opt2.selected{
+    border-color:var(--bad);
+    background:var(--bad-light);
+    color:var(--bad);
+  }
+  .note-input{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:13.5px;
+    font-family:inherit;
+    background:#fff;
+  }
+  .note-input::placeholder{color:#9aa8b3;}
+
+  /* Buttons */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:none;
+    border-radius:8px;
+    padding:11px 18px;
+    font-size:14.5px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-deep);}
+  .btn-teal{background:var(--teal);color:#fff;}
+  .btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--line);}
+  .btn-outline:hover{border-color:var(--navy);}
+  .btn-danger{background:#fff;color:var(--bad);border:1.5px solid #f1c1bb;}
+  .btn-danger:hover{background:var(--bad-light);}
+  .btn-sm{padding:7px 12px;font-size:13px;}
+  .btn-block{width:100%;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .submit-bar{
+    position:sticky;
+    bottom:0;
+    background:linear-gradient(180deg, rgba(242,244,246,0) 0%, var(--bg) 30%);
+    padding:14px 0 4px 0;
+  }
+
+  /* Toast / modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(14,35,52,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+    padding:16px;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    max-width:420px;
+    width:100%;
+    padding:26px 22px 22px 22px;
+    text-align:center;
+  }
+  .modal .icon-ok{
+    width:52px;height:52px;border-radius:50%;
+    background:var(--teal-light);
+    color:var(--ok);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 14px auto;
+    font-size:26px;
+  }
+  .modal h3{margin:0 0 8px 0;font-size:17px;color:var(--navy);}
+  .modal p{margin:0 0 18px 0;font-size:14px;color:var(--text-dim);}
+
+  .modal-detail{
+    max-width:520px;
+    text-align:left;
+    max-height:85vh;
+    overflow-y:auto;
+  }
+  .modal-detail h3{color:var(--navy);font-size:16px;margin-bottom:14px;}
+  .detail-grid{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:8px 14px;
+    font-size:13.5px;
+    margin-bottom:16px;
+  }
+  .detail-grid div span{display:block;color:var(--text-dim);font-size:11.5px;font-weight:600;}
+  .detail-list{list-style:none;padding:0;margin:0;}
+  .detail-list li{
+    display:flex;justify-content:space-between;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .detail-list li .tag{
+    font-weight:700;font-size:12px;padding:3px 9px;border-radius:6px;flex-shrink:0;height:fit-content;
+  }
+  .tag-ok{background:var(--teal-light);color:var(--ok);}
+  .tag-bad{background:var(--bad-light);color:var(--bad);}
+  .detail-note{font-size:12px;color:var(--bad);margin-top:3px;}
+
+  /* Login */
+  .login-wrap{max-width:340px;margin:40px auto;}
+  .login-wrap .card{text-align:center;}
+  .login-wrap .lock{
+    width:50px;height:50px;border-radius:50%;
+    background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 14px auto;font-size:22px;
+  }
+
+  /* Admin subnav */
+  .subnav{
+    display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;
+  }
+  .subnav button{
+    background:#fff;border:1.5px solid var(--line);
+    color:var(--text-dim);
+    padding:8px 14px;border-radius:20px;
+    font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .subnav button.active{
+    background:var(--navy);border-color:var(--navy);color:#fff;
+  }
+
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th{color:var(--text-dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;}
+  tr:hover td{background:#f9fafb;}
+  .badge-count{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:22px;height:22px;padding:0 6px;border-radius:11px;
+    font-size:12px;font-weight:700;
+  }
+  .badge-0{background:var(--teal-light);color:var(--ok);}
+  .badge-n{background:var(--bad-light);color:var(--bad);}
+
+  .empty-state{
+    text-align:center;color:var(--text-dim);padding:30px 10px;font-size:13.5px;
+  }
+
+  .chk-admin-row{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;margin-bottom:8px;background:#fbfcfd;
+  }
+  .chk-admin-row .info{flex:1;min-width:0;}
+  .chk-admin-row .info b{display:block;font-size:13.5px;}
+  .chk-admin-row .info small{color:var(--text-dim);font-size:11.5px;}
+  .chk-admin-actions{display:flex;gap:6px;flex-shrink:0;}
+  .icon-btn{
+    border:none;background:transparent;cursor:pointer;
+    width:30px;height:30px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;color:var(--text-dim);
+  }
+  .icon-btn:hover{background:var(--line);}
+  .icon-btn.danger:hover{background:var(--bad-light);color:var(--bad);}
+
+  .summary-box{
+    background:var(--bad-light);
+    border:1px solid #f1c1bb;
+    border-radius:9px;
+    padding:12px 14px;
+    margin-bottom:14px;
+  }
+  .summary-box h4{margin:0 0 8px 0;font-size:13px;color:var(--bad);}
+  .summary-box ul{margin:0;padding-left:18px;font-size:13px;}
+  .summary-box li{margin-bottom:4px;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px;}
+  .toolbar .field{min-width:130px;}
+
+  .required:after{content:" *";color:var(--bad);}
+
+  @media (max-width:560px){
+    .field-grid{grid-template-columns:1fr;}
+    .detail-grid{grid-template-columns:1fr 1fr;}
+    .header-top h1{font-size:16px;}
+    th,td{font-size:12.3px;padding:8px 7px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="logo-badge">QLX</div>
+    <div>
+      <h1>Quản Lý Xe</h1>
+      <p>Kiểm tra & theo dõi tình trạng phương tiện</p>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button id="tabBtnCheck" class="active" onclick="switchTab('check')">Kiểm Tra Xe</button>
+    <button id="tabBtnAdmin" onclick="switchTab('admin')">Quản Lý</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ================= VIEW: KIỂM TRA XE ================= -->
+  <section id="view-check" class="view active">
+
+    <div class="card">
+      <h2><span class="num">1</span>Thông tin</h2>
+      <div class="field-grid">
+        <div class="field full">
+          <label class="required">Họ và tên</label>
+          <input type="text" id="f_hoten" placeholder="Nguyễn Văn A">
+        </div>
+        <div class="field">
+          <label class="required">Số điện thoại</label>
+          <input type="tel" id="f_sdt" placeholder="09xxxxxxxx">
+        </div>
+        <div class="field">
+          <label class="required">Chi nhánh</label>
+          <input type="text" id="f_chinhanh" placeholder="Chi nhánh...">
+        </div>
+        <div class="field">
+          <label class="required">Biển số xe</label>
+          <input type="text" id="f_bienso" placeholder="51C-123.45" style="text-transform:uppercase;">
+        </div>
+        <div class="field">
+          <label class="required">Kilomet hiện tại</label>
+          <input type="number" id="f_km" placeholder="0" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span>Check list kiểm tra</h2>
+      <div id="checklistFormArea"></div>
+    </div>
+
+    <div class="submit-bar">
+      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitCheck()">Gửi kiểm tra</button>
+    </div>
+  </section>
+
+  <!-- ================= VIEW: QUẢN LÝ ================= -->
+  <section id="view-admin" class="view">
+
+    <div id="loginArea" class="login-wrap">
+      <div class="card">
+        <div class="lock">🔒</div>
+        <h2 style="justify-content:center;">Đăng nhập quản lý</h2>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Tên đăng nhập</label>
+          <input type="text" id="loginUser" placeholder="Tên đăng nhập">
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Mật khẩu</label>
+          <input type="password" id="loginPass" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="doLogin()">Đăng nhập</button>
+        <p id="loginError" style="color:var(--bad);font-size:12.5px;margin-top:10px;display:none;">Sai tên đăng nhập hoặc mật khẩu.</p>
+      </div>
+    </div>
+
+    <div id="adminArea" style="display:none;">
+      <div class="subnav">
+        <button id="subBtnList" class="active" onclick="switchAdminTab('list')">Danh sách kiểm tra</button>
+        <button id="subBtnVehicle" onclick="switchAdminTab('vehicle')">Theo xe</button>
+        <button id="subBtnChecklist" onclick="switchAdminTab('checklist')">Danh mục Check list</button>
+        <button class="btn-outline" style="border-radius:20px;margin-left:auto;padding:8px 14px;font-size:13px;" onclick="doLogout()">Đăng xuất</button>
+      </div>
+
+      <!-- Danh sách kiểm tra -->
+      <div id="admin-list" class="admin-sub active">
+        <div class="card">
+          <h2><span class="num">⚲</span>Bộ lọc</h2>
+          <div class="toolbar">
+            <div class="field">
+              <label>Từ ngày</label>
+              <input type="date" id="filterFrom">
+            </div>
+            <div class="field">
+              <label>Đến ngày</label>
+              <input type="date" id="filterTo">
+            </div>
+            <div class="field">
+              <label>Biển số xe</label>
+              <select id="filterBienSo"><option value="">Tất cả xe</option></select>
+            </div>
+            <div class="field" style="flex:0;">
+              <label>&nbsp;</label>
+              <button class="btn btn-outline" onclick="renderRecordsTable()">Lọc</button>
+            </div>
+            <div class="field" style="flex:0;">
+              <label>&nbsp;</label>
+              <button class="btn btn-teal" onclick="exportExcel()">⭳ Xuất Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="summaryPanel"></div>
+
+        <div class="card">
+          <h2><span class="num">☰</span>Kết quả kiểm tra</h2>
+          <div class="table-wrap">
+            <table id="recordsTable">
+              <thead>
+                <tr>
+                  <th>Ngày</th><th>Giờ</th><th>Biển số</th><th>Họ tên</th><th>Chi nhánh</th><th>Km</th><th>Bất thường</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="recordsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="recordsEmpty" class="empty-state" style="display:none;">Chưa có dữ liệu kiểm tra phù hợp.</div>
+        </div>
+      </div>
+
+      <!-- Theo xe -->
+      <div id="admin-vehicle" class="admin-sub" style="display:none;">
+        <div class="card">
+          <h2><span class="num">🚚</span>Chọn xe để xem lịch sử</h2>
+          <div class="field">
+            <label>Biển số xe</label>
+            <select id="vehicleSelect" onchange="renderVehicleHistory()"><option value="">-- Chọn xe --</option></select>
+          </div>
+        </div>
+        <div id="vehicleHistoryArea"></div>
+      </div>
+
+      <!-- Danh mục checklist -->
+      <div id="admin-checklist" class="admin-sub" style="display:none;">
+        <div class="card">
+          <h2><span class="num">+</span>Thêm danh mục kiểm tra</h2>
+          <div class="field-grid">
+            <div class="field full">
+              <label>Tên danh mục</label>
+              <input type="text" id="newItemLabel" placeholder="VD: Hệ thống điều hòa">
+            </div>
+            <div class="field">
+              <label>Nhãn lựa chọn 1 (đạt)</label>
+              <input type="text" id="newItemOpt1" placeholder="OK / Đủ">
+            </div>
+            <div class="field">
+              <label>Nhãn lựa chọn 2 (không đạt)</label>
+              <input type="text" id="newItemOpt2" placeholder="Không OK / Thiếu">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="addChecklistItem()">Thêm danh mục</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="num">☰</span>Danh mục hiện có</h2>
+          <div id="checklistAdminArea"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast thành công -->
+<div class="overlay" id="toastOverlay">
+  <div class="modal">
+    <div class="icon-ok">✓</div>
+    <h3>Đã ghi nhận kiểm tra</h3>
+    <p id="toastMessage"></p>
+    <button class="btn btn-primary btn-block" onclick="closeToast()">Đóng</button>
+  </div>
+</div>
+
+<!-- Modal chi tiết -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal modal-detail" id="detailModalContent"></div>
+</div>
+
+<script>
+/* ============================================================
+   DỮ LIỆU & LƯU TRỮ (Firebase Firestore — dùng chung mọi thiết bị)
+   ============================================================ */
+const ADMIN_USER = 'PCU';
+const ADMIN_PASS = '123';
+const CHECKLIST_DOC = db.collection('meta').doc('checklist');
+const RECORDS_COL = db.collection('records');
+
+const DEFAULT_CHECKLIST = [
+  {label:'Thân vỏ/ sơn quanh xe', opt1:'OK', opt2:'Không OK'},
+  {label:'Khoang chở hàng/ thùng xe', opt1:'OK', opt2:'Không OK'},
+  {label:'Mâm lốp xe (áp suất lốp, gai vỏ…)', opt1:'OK', opt2:'Không OK'},
+  {label:'Động cơ (có tiếng động lạ, yếu, hụt hơi, rung lắc…)', opt1:'OK', opt2:'Không OK'},
+  {label:'Hệ thống phanh', opt1:'OK', opt2:'Không OK'},
+  {label:'Hệ thống lái (vô lăng, trợ lực lái, rotuyn...)', opt1:'OK', opt2:'Không OK'},
+  {label:'Khung gầm', opt1:'OK', opt2:'Không OK'},
+  {label:'Hệ thống đèn/ điện/ bảng điều khiển', opt1:'OK', opt2:'Không OK'},
+  {label:'Còi / cảnh báo lùi', opt1:'OK', opt2:'Không OK'},
+  {label:'Kính chắn gió / gương chiếu hậu/ điểm mù', opt1:'OK', opt2:'Không OK'},
+  {label:'Gạt mưa / nước rửa kính', opt1:'OK', opt2:'Không OK'},
+  {label:'Dầu động cơ / nước làm mát / dầu phanh', opt1:'OK', opt2:'Không OK'},
+  {label:'Nhiên liệu / Pin xe điện', opt1:'Đủ', opt2:'Không đủ (%pin)'},
+  {label:'Giấy tờ xe', opt1:'Đủ', opt2:'Thiếu'},
+  {label:'Bình chữa cháy/ búa thoát hiểm', opt1:'Đủ', opt2:'Thiếu'},
+  {label:'Hệ thống GPS', opt1:'OK', opt2:'Không OK'},
+  {label:'Cáp sạc di động / Cổng sạc (Dành cho Van Điện)', opt1:'OK', opt2:'Không OK'},
+].map((it,i)=>({id:'ck_'+i, ...it}));
+
+function genId(){ return 'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* Bộ nhớ đệm trong phiên làm việc */
+let checklistCache = [];
+let recordsCache = [];
+
+async function loadChecklist(){
+  try{
+    const snap = await CHECKLIST_DOC.get();
+    if(snap.exists && Array.isArray(snap.data().items) && snap.data().items.length>0){
+      return snap.data().items;
+    }
+    await CHECKLIST_DOC.set({items: DEFAULT_CHECKLIST});
+    return DEFAULT_CHECKLIST.slice();
+  }catch(e){
+    console.error('Lỗi tải danh mục check list:', e);
+    showConnError();
+    return DEFAULT_CHECKLIST.slice();
+  }
+}
+async function saveChecklist(list){
+  try{
+    await CHECKLIST_DOC.set({items:list});
+    return true;
+  }catch(e){
+    console.error('Lỗi lưu danh mục check list:', e);
+    showConnError();
+    return false;
+  }
+}
+
+async function loadRecords(){
+  try{
+    const snap = await RECORDS_COL.orderBy('createdAt','desc').get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){
+    console.error('Lỗi tải dữ liệu kiểm tra:', e);
+    showConnError();
+    return [];
+  }
+}
+async function addRecordToDb(record){
+  try{
+    await RECORDS_COL.doc(record.id).set(record);
+    return true;
+  }catch(e){
+    console.error('Lỗi lưu phiếu kiểm tra:', e);
+    showConnError();
+    return false;
+  }
+}
+function showConnError(){
+  alert('Không thể kết nối tới cơ sở dữ liệu (Firebase). Vui lòng kiểm tra kết nối mạng và thử lại.');
+}
+
+/* current answer state for the check form: {itemId: {value:'opt1'|'opt2', note:''}} */
+let currentAnswers = {};
+
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+function switchTab(tab){
+  document.getElementById('view-check').classList.toggle('active', tab==='check');
+  document.getElementById('view-admin').classList.toggle('active', tab==='admin');
+  document.getElementById('tabBtnCheck').classList.toggle('active', tab==='check');
+  document.getElementById('tabBtnAdmin').classList.toggle('active', tab==='admin');
+  if(tab==='admin'){ refreshAdminGate(); }
+}
+
+async function switchAdminTab(sub){
+  ['list','vehicle','checklist'].forEach(s=>{
+    document.getElementById('admin-'+s).style.display = (s===sub)?'block':'none';
+  });
+  document.getElementById('subBtnList').classList.toggle('active', sub==='list');
+  document.getElementById('subBtnVehicle').classList.toggle('active', sub==='vehicle');
+  document.getElementById('subBtnChecklist').classList.toggle('active', sub==='checklist');
+  if(sub==='list'){ await renderRecordsTable(); }
+  if(sub==='vehicle'){ recordsCache = await loadRecords(); populateVehicleSelectOptions(); renderVehicleHistory(); }
+  if(sub==='checklist'){ checklistCache = await loadChecklist(); renderChecklistAdmin(); }
+}
+
+/* ============================================================
+   PHẦN KIỂM TRA XE
+   ============================================================ */
+function renderChecklistForm(){
+  const list = checklistCache;
+  currentAnswers = {};
+  const area = document.getElementById('checklistFormArea');
+  if(list.length===0){
+    area.innerHTML = '<div class="empty-state">Chưa có danh mục check list. Vui lòng thêm trong phần Quản Lý.</div>';
+    return;
+  }
+  area.innerHTML = list.map(item=>{
+    currentAnswers[item.id] = {value:null, note:''};
+    return `
+    <div class="check-row" id="row_${item.id}">
+      <div class="label">${escapeHtml(item.label)}</div>
+      <div class="opt-group">
+        <div class="opt-btn opt1" onclick="selectOption('${item.id}','opt1')" id="opt1_${item.id}">☐ ${escapeHtml(item.opt1)}</div>
+        <div class="opt-btn opt2" onclick="selectOption('${item.id}','opt2')" id="opt2_${item.id}">☐ ${escapeHtml(item.opt2)}</div>
+      </div>
+      <input type="text" class="note-input" placeholder="Bất thường (nếu có)..." oninput="setNote('${item.id}', this.value)">
+    </div>`;
+  }).join('');
+}
+
+function selectOption(itemId, val){
+  currentAnswers[itemId].value = val;
+  const row = document.getElementById('row_'+itemId);
+  row.classList.remove('answered-ok','answered-bad');
+  row.classList.add(val==='opt1' ? 'answered-ok' : 'answered-bad');
+  document.getElementById('opt1_'+itemId).classList.toggle('selected', val==='opt1');
+  document.getElementById('opt2_'+itemId).classList.toggle('selected', val==='opt2');
+}
+function setNote(itemId, val){ currentAnswers[itemId].note = val; }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function submitCheck(){
+  const hoten = document.getElementById('f_hoten').value.trim();
+  const sdt = document.getElementById('f_sdt').value.trim();
+  const chinhanh = document.getElementById('f_chinhanh').value.trim();
+  const bienso = document.getElementById('f_bienso').value.trim().toUpperCase();
+  const km = document.getElementById('f_km').value.trim();
+
+  if(!hoten || !sdt || !chinhanh || !bienso || km===''){
+    alert('Vui lòng điền đầy đủ thông tin (Họ tên, SĐT, Chi nhánh, Biển số, Km).');
+    return;
+  }
+  const list = checklistCache;
+  for(const item of list){
+    if(!currentAnswers[item.id] || !currentAnswers[item.id].value){
+      alert('Vui lòng hoàn thành mục: "'+item.label+'" trước khi gửi.');
+      document.getElementById('row_'+item.id).scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+  }
+
+  const now = new Date();
+  const record = {
+    id: genId(),
+    createdAt: now.toISOString(),
+    date: toDateStr(now),
+    time: toTimeStr(now),
+    hoTen: hoten, sdt: sdt, chiNhanh: chinhanh, bienSo: bienso, km: km,
+    checklist: list.map(item=>({
+      id:item.id, label:item.label, opt1:item.opt1, opt2:item.opt2,
+      value: currentAnswers[item.id].value,
+      note: currentAnswers[item.id].note || ''
+    }))
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Đang gửi...';
+  const ok = await addRecordToDb(record);
+  btn.disabled = false;
+  btn.textContent = 'Gửi kiểm tra';
+  if(!ok) return;
+
+  document.getElementById('toastMessage').textContent =
+    `Hệ thống đã ghi nhận phần kiểm tra xe biển số ${bienso} ngày ${formatDateVN(record.date)}.`;
+  document.getElementById('toastOverlay').classList.add('show');
+
+  // reset form
+  document.getElementById('f_hoten').value='';
+  document.getElementById('f_sdt').value='';
+  document.getElementById('f_chinhanh').value='';
+  document.getElementById('f_bienso').value='';
+  document.getElementById('f_km').value='';
+  checklistCache = await loadChecklist();
+  renderChecklistForm();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function closeToast(){ document.getElementById('toastOverlay').classList.remove('show'); }
+
+function toDateStr(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function toTimeStr(d){
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function formatDateVN(dateStr){
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+/* ============================================================
+   ĐĂNG NHẬP QUẢN LÝ
+   ============================================================ */
+function refreshAdminGate(){
+  const logged = sessionStorage.getItem('vlq_admin_session')==='1';
+  document.getElementById('loginArea').style.display = logged ? 'none' : 'block';
+  document.getElementById('adminArea').style.display = logged ? 'block' : 'none';
+  if(logged){ switchAdminTab('list'); }
+}
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if(u===ADMIN_USER && p===ADMIN_PASS){
+    sessionStorage.setItem('vlq_admin_session','1');
+    document.getElementById('loginError').style.display='none';
+    document.getElementById('loginUser').value='';
+    document.getElementById('loginPass').value='';
+    refreshAdminGate();
+  } else {
+    document.getElementById('loginError').style.display='block';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem('vlq_admin_session');
+  refreshAdminGate();
+}
+
+/* ============================================================
+   DANH SÁCH KIỂM TRA / BỘ LỌC
+   ============================================================ */
+function populateVehicleFilterOptions(){
+  const sel = document.getElementById('filterBienSo');
+  const cur = sel.value;
+  const plates = [...new Set(recordsCache.map(r=>r.bienSo))].sort();
+  sel.innerHTML = '<option value="">Tất cả xe</option>' + plates.map(p=>`<option value="${p}">${p}</option>`).join('');
+  sel.value = cur;
+}
+function populateVehicleSelectOptions(){
+  const sel = document.getElementById('vehicleSelect');
+  const cur = sel.value;
+  const plates = [...new Set(recordsCache.map(r=>r.bienSo))].sort();
+  sel.innerHTML = '<option value="">-- Chọn xe --</option>' + plates.map(p=>`<option value="${p}">${p}</option>`).join('');
+  sel.value = cur;
+}
+
+function countAbnormal(record){
+  return record.checklist.filter(c=>c.value==='opt2').length;
+}
+
+function getFilteredRecords(){
+  const from = document.getElementById('filterFrom')?.value;
+  const to = document.getElementById('filterTo')?.value;
+  const plate = document.getElementById('filterBienSo')?.value;
+  let records = recordsCache.slice();
+  if(from) records = records.filter(r=>r.date>=from);
+  if(to) records = records.filter(r=>r.date<=to);
+  if(plate) records = records.filter(r=>r.bienSo===plate);
+  return records.sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time));
+}
+
+async function renderRecordsTable(){
+  recordsCache = await loadRecords();
+  populateVehicleFilterOptions();
+  const records = getFilteredRecords();
+  const tbody = document.getElementById('recordsTableBody');
+  document.getElementById('recordsEmpty').style.display = records.length===0 ? 'block':'none';
+  tbody.innerHTML = records.map(r=>{
+    const n = countAbnormal(r);
+    return `<tr>
+      <td>${formatDateVN(r.date)}</td>
+      <td>${r.time}</td>
+      <td><b>${r.bienSo}</b></td>
+      <td>${escapeHtml(r.hoTen)}</td>
+      <td>${escapeHtml(r.chiNhanh)}</td>
+      <td>${escapeHtml(r.km)}</td>
+      <td><span class="badge-count ${n>0?'badge-n':'badge-0'}">${n}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewDetail('${r.id}')">Xem</button></td>
+    </tr>`;
+  }).join('');
+  renderSummaryPanel(records);
+}
+
+function renderSummaryPanel(records){
+  const panel = document.getElementById('summaryPanel');
+  const abnormalRecords = records.filter(r=>countAbnormal(r)>0);
+  if(abnormalRecords.length===0){
+    panel.innerHTML = '';
+    return;
+  }
+  // group by date + plate
+  const groups = {};
+  abnormalRecords.forEach(r=>{
+    const key = r.date+'|'+r.bienSo;
+    if(!groups[key]) groups[key] = {date:r.date, bienSo:r.bienSo, items:[]};
+    r.checklist.filter(c=>c.value==='opt2').forEach(c=>{
+      groups[key].items.push(c.label + (c.note ? ` — ${c.note}` : ''));
+    });
+  });
+  const groupArr = Object.values(groups).sort((a,b)=> b.date.localeCompare(a.date));
+  panel.innerHTML = `<div class="summary-box">
+    <h4>Tổng hợp bất thường (${groupArr.length} lượt xe có bất thường)</h4>
+    ${groupArr.map(g=>`
+      <div style="margin-bottom:8px;">
+        <b style="font-size:12.5px;">${g.bienSo} — ngày ${formatDateVN(g.date)}</b>
+        <ul>${g.items.map(i=>`<li>${escapeHtml(i)}</li>`).join('')}</ul>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function viewDetail(recordId){
+  const r = recordsCache.find(x=>x.id===recordId);
+  if(!r) return;
+  const n = countAbnormal(r);
+  const html = `
+    <h3>Chi tiết kiểm tra xe ${r.bienSo}</h3>
+    <div class="detail-grid">
+      <div><span>Ngày kiểm tra</span>${formatDateVN(r.date)} — ${r.time}</div>
+      <div><span>Người kiểm tra</span>${escapeHtml(r.hoTen)}</div>
+      <div><span>SĐT</span>${escapeHtml(r.sdt)}</div>
+      <div><span>Chi nhánh</span>${escapeHtml(r.chiNhanh)}</div>
+      <div><span>Biển số</span>${escapeHtml(r.bienSo)}</div>
+      <div><span>Kilomet</span>${escapeHtml(r.km)}</div>
+    </div>
+    ${n>0 ? `<div class="summary-box"><h4>Bất thường ghi nhận (${n})</h4><ul>${
+      r.checklist.filter(c=>c.value==='opt2').map(c=>`<li>${escapeHtml(c.label)}${c.note?` — ${escapeHtml(c.note)}`:''}</li>`).join('')
+    }</ul></div>` : ''}
+    <ul class="detail-list">
+      ${r.checklist.map(c=>`
+        <li>
+          <span>${escapeHtml(c.label)}${c.note?`<div class="detail-note">${escapeHtml(c.note)}</div>`:''}</span>
+          <span class="tag ${c.value==='opt1'?'tag-ok':'tag-bad'}">${c.value==='opt1'?escapeHtml(c.opt1):escapeHtml(c.opt2)}</span>
+        </li>`).join('')}
+    </ul>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="closeDetail()">Đóng</button>
+  `;
+  document.getElementById('detailModalContent').innerHTML = html;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
+
+/* ============================================================
+   QUẢN LÝ THEO XE
+   ============================================================ */
+function renderVehicleHistory(){
+  const plate = document.getElementById('vehicleSelect').value;
+  const area = document.getElementById('vehicleHistoryArea');
+  if(!plate){ area.innerHTML=''; return; }
+  const records = recordsCache.filter(r=>r.bienSo===plate).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  if(records.length===0){
+    area.innerHTML = '<div class="card"><div class="empty-state">Xe này chưa có lượt kiểm tra nào.</div></div>';
+    return;
+  }
+  renderSummaryPanelInto(area, records, plate);
+}
+function renderSummaryPanelInto(area, records, plate){
+  const abnormalRecords = records.filter(r=>countAbnormal(r)>0);
+  let summaryHtml = '';
+  if(abnormalRecords.length>0){
+    const byDate = {};
+    abnormalRecords.forEach(r=>{
+      if(!byDate[r.date]) byDate[r.date]=[];
+      r.checklist.filter(c=>c.value==='opt2').forEach(c=> byDate[r.date].push(c.label + (c.note?` — ${c.note}`:'')));
+    });
+    const dates = Object.keys(byDate).sort().reverse();
+    summaryHtml = `<div class="card"><h2><span class="num">⚠</span>Tổng hợp bất thường của xe ${plate}</h2>
+      <div class="summary-box">
+        ${dates.map(d=>`<div style="margin-bottom:8px;"><b style="font-size:12.5px;">Ngày ${formatDateVN(d)}</b><ul>${byDate[d].map(i=>`<li>${escapeHtml(i)}</li>`).join('')}</ul></div>`).join('')}
+      </div>
+    </div>`;
+  }
+  const tableHtml = `<div class="card"><h2><span class="num">☰</span>Lịch sử kiểm tra (${records.length} lượt)</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ngày</th><th>Giờ</th><th>Người kiểm tra</th><th>Chi nhánh</th><th>Km</th><th>Bất thường</th><th></th></tr></thead>
+      <tbody>
+        ${records.map(r=>{
+          const n = countAbnormal(r);
+          return `<tr>
+            <td>${formatDateVN(r.date)}</td><td>${r.time}</td><td>${escapeHtml(r.hoTen)}</td>
+            <td>${escapeHtml(r.chiNhanh)}</td><td>${escapeHtml(r.km)}</td>
+            <td><span class="badge-count ${n>0?'badge-n':'badge-0'}">${n}</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="viewDetail('${r.id}')">Xem</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+  area.innerHTML = summaryHtml + tableHtml;
+}
+
+/* ============================================================
+   QUẢN LÝ DANH MỤC CHECK LIST
+   ============================================================ */
+async function addChecklistItem(){
+  const label = document.getElementById('newItemLabel').value.trim();
+  const opt1 = document.getElementById('newItemOpt1').value.trim() || 'OK';
+  const opt2 = document.getElementById('newItemOpt2').value.trim() || 'Không OK';
+  if(!label){ alert('Vui lòng nhập tên danh mục.'); return; }
+  const list = checklistCache.slice();
+  list.push({id:genId(), label, opt1, opt2});
+  const ok = await saveChecklist(list);
+  if(!ok) return;
+  checklistCache = list;
+  document.getElementById('newItemLabel').value='';
+  document.getElementById('newItemOpt1').value='';
+  document.getElementById('newItemOpt2').value='';
+  renderChecklistAdmin();
+}
+async function deleteChecklistItem(id){
+  if(!confirm('Xóa danh mục này khỏi phiếu kiểm tra? (Các phiếu đã ghi nhận trước đó không bị ảnh hưởng)')) return;
+  let list = checklistCache.filter(i=>i.id!==id);
+  const ok = await saveChecklist(list);
+  if(!ok) return;
+  checklistCache = list;
+  renderChecklistAdmin();
+}
+async function editChecklistItem(id){
+  const list = checklistCache.slice();
+  const item = list.find(i=>i.id===id);
+  if(!item) return;
+  const newLabel = prompt('Tên danh mục:', item.label);
+  if(newLabel===null) return;
+  const newOpt1 = prompt('Nhãn lựa chọn 1 (đạt):', item.opt1);
+  if(newOpt1===null) return;
+  const newOpt2 = prompt('Nhãn lựa chọn 2 (không đạt):', item.opt2);
+  if(newOpt2===null) return;
+  item.label = newLabel.trim() || item.label;
+  item.opt1 = newOpt1.trim() || item.opt1;
+  item.opt2 = newOpt2.trim() || item.opt2;
+  const ok = await saveChecklist(list);
+  if(!ok) return;
+  checklistCache = list;
+  renderChecklistAdmin();
+}
+async function moveChecklistItem(id, dir){
+  const list = checklistCache.slice();
+  const idx = list.findIndex(i=>i.id===id);
+  const newIdx = idx+dir;
+  if(newIdx<0 || newIdx>=list.length) return;
+  [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+  const ok = await saveChecklist(list);
+  if(!ok) return;
+  checklistCache = list;
+  renderChecklistAdmin();
+}
+function renderChecklistAdmin(){
+  const list = checklistCache;
+  const area = document.getElementById('checklistAdminArea');
+  if(list.length===0){
+    area.innerHTML = '<div class="empty-state">Chưa có danh mục nào. Thêm danh mục ở trên.</div>';
+    return;
+  }
+  area.innerHTML = list.map((item,idx)=>`
+    <div class="chk-admin-row">
+      <div class="info">
+        <b>${escapeHtml(item.label)}</b>
+        <small>${escapeHtml(item.opt1)} / ${escapeHtml(item.opt2)}</small>
+      </div>
+      <div class="chk-admin-actions">
+        <button class="icon-btn" title="Lên" onclick="moveChecklistItem('${item.id}', -1)" ${idx===0?'disabled':''}>↑</button>
+        <button class="icon-btn" title="Xuống" onclick="moveChecklistItem('${item.id}', 1)" ${idx===list.length-1?'disabled':''}>↓</button>
+        <button class="icon-btn" title="Sửa" onclick="editChecklistItem('${item.id}')">✎</button>
+        <button class="icon-btn danger" title="Xóa" onclick="deleteChecklistItem('${item.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   XUẤT EXCEL
+   ============================================================ */
+function exportExcel(){
+  const records = getFilteredRecords();
+  if(records.length===0){ alert('Không có dữ liệu để xuất.'); return; }
+
+  // tập hợp tất cả nhãn danh mục xuất hiện trong các bản ghi đã lọc
+  const allLabels = [];
+  records.forEach(r=> r.checklist.forEach(c=>{ if(!allLabels.includes(c.label)) allLabels.push(c.label); }));
+
+  const rows = records.map(r=>{
+    const row = {
+      'Ngày kiểm tra': formatDateVN(r.date),
+      'Giờ': r.time,
+      'Họ và tên': r.hoTen,
+      'Số điện thoại': r.sdt,
+      'Chi nhánh': r.chiNhanh,
+      'Biển số xe': r.bienSo,
+      'Kilomet hiện tại': r.km,
+    };
+    allLabels.forEach(label=>{
+      const c = r.checklist.find(x=>x.label===label);
+      row[label] = c ? (c.value==='opt1' ? c.opt1 : c.opt2) : '';
+    });
+    const notes = r.checklist.filter(c=>c.note).map(c=>`${c.label}: ${c.note}`).join(' | ');
+    row['Tổng hợp bất thường'] = notes;
+    row['Số lượng bất thường'] = countAbnormal(r);
+    return row;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'KiemTraXe');
+  const stamp = toDateStr(new Date());
+  XLSX.writeFile(wb, `quan-ly-xe_${stamp}.xlsx`);
+}
+
+/* ============================================================
+   KHỞI TẠO
+   ============================================================ */
+async function init(){
+  const today = toDateStr(new Date());
+  const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate()-30);
+  document.getElementById('filterFrom').value = toDateStr(monthAgo);
+  document.getElementById('filterTo').value = today;
+  refreshAdminGate();
+
+  checklistCache = await loadChecklist();
+  renderChecklistForm();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
