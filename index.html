@@ -370,6 +370,15 @@
   .badge-0{background:var(--teal-light);color:var(--ok);}
   .badge-n{background:var(--bad-light);color:var(--bad);}
 
+  .badge-quality{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:4px 11px;border-radius:12px;
+    font-size:12px;font-weight:700;white-space:nowrap;
+  }
+  .badge-quality-good{background:var(--teal-light);color:var(--ok);}
+  .badge-quality-mid{background:#fdf3e0;color:var(--amber);}
+  .badge-quality-bad{background:var(--bad-light);color:var(--bad);}
+
   .empty-state{
     text-align:center;color:var(--text-dim);padding:30px 10px;font-size:13.5px;
   }
@@ -574,7 +583,8 @@
         <button id="subBtnVehicle" onclick="switchAdminTab('vehicle')">Theo xe</button>
         <button id="subBtnChecklist" onclick="switchAdminTab('checklist')">Danh mục Check list</button>
         <button id="subBtnReport" onclick="switchAdminTab('report')">Báo cáo tổng quan</button>
-        <button id="subBtnCleanup" onclick="switchAdminTab('cleanup')">Xóa ảnh cũ</button>
+        <button id="subBtnCleanup" onclick="switchAdminTab('cleanup')">Xóa dữ liệu cũ</button>
+        <button id="subBtnSettings" onclick="switchAdminTab('settings')">Tài khoản quản lý</button>
         <button class="btn-outline" style="border-radius:20px;margin-left:auto;padding:8px 14px;font-size:13px;" onclick="doLogout()">Đăng xuất</button>
       </div>
 
@@ -667,17 +677,44 @@
 
       <!-- Báo cáo tổng quan -->
       <div id="admin-report" class="admin-sub" style="display:none;">
+        <div class="card">
+          <h2><span class="num">⚲</span>Chọn khoảng thời gian báo cáo</h2>
+          <div class="toolbar">
+            <div class="field">
+              <label>Từ ngày</label>
+              <input type="date" id="reportFrom">
+            </div>
+            <div class="field">
+              <label>Đến ngày</label>
+              <input type="date" id="reportTo">
+            </div>
+            <div class="field" style="flex:0;">
+              <label>&nbsp;</label>
+              <button class="btn btn-outline" onclick="renderVehicleReport()">Lọc</button>
+            </div>
+            <div class="field" style="flex:0;">
+              <label>&nbsp;</label>
+              <button class="btn btn-outline" onclick="resetReportRange()">Xem tất cả</button>
+            </div>
+          </div>
+        </div>
         <div id="reportArea"></div>
       </div>
 
-      <!-- Xóa ảnh cũ -->
+      <!-- Xóa dữ liệu cũ -->
       <div id="admin-cleanup" class="admin-sub" style="display:none;">
         <div class="card">
-          <h2><span class="num">🗑</span>Xóa hình ảnh theo thời gian</h2>
+          <h2><span class="num">🗑</span>Xóa dữ liệu cũ theo thời gian</h2>
           <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 14px 0;">
-            Chọn khoảng thời gian để xóa toàn bộ hình ảnh đính kèm của các phiếu kiểm tra trong khoảng đó, giúp giảm nhẹ dung lượng lưu trữ.
-            Dữ liệu kiểm tra (checklist, thông tin xe...) vẫn được giữ nguyên, chỉ hình ảnh bị xóa khỏi bộ nhớ lưu trữ.
+            Chọn khoảng thời gian và hình thức xóa để giảm nhẹ dung lượng lưu trữ. Hành động xóa không thể hoàn tác, vui lòng cân nhắc kỹ.
           </p>
+          <div class="field" style="margin-bottom:14px;max-width:420px;">
+            <label>Hình thức xóa</label>
+            <select id="cleanupMode">
+              <option value="images">Chỉ xóa hình ảnh (giữ nguyên dữ liệu checklist)</option>
+              <option value="records">Xóa toàn bộ phiếu kiểm tra (dữ liệu + hình ảnh)</option>
+            </select>
+          </div>
           <div class="toolbar">
             <div class="field">
               <label>Từ ngày</label>
@@ -693,6 +730,31 @@
             </div>
           </div>
           <div id="cleanupPreview"></div>
+        </div>
+      </div>
+
+      <!-- Tài khoản quản lý -->
+      <div id="admin-settings" class="admin-sub" style="display:none;">
+        <div class="card" style="max-width:460px;">
+          <h2><span class="num">⚙</span>Đổi tên đăng nhập / mật khẩu</h2>
+          <div class="field" style="margin-bottom:12px;">
+            <label class="required">Mật khẩu hiện tại</label>
+            <input type="password" id="stCurPass" placeholder="Nhập mật khẩu hiện tại">
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Tên đăng nhập mới</label>
+            <input type="text" id="stNewUser" placeholder="Để trống nếu không đổi">
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Mật khẩu mới</label>
+            <input type="password" id="stNewPass" placeholder="Để trống nếu không đổi">
+          </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label>Nhập lại mật khẩu mới</label>
+            <input type="password" id="stNewPass2" placeholder="Nhập lại mật khẩu mới">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="changeAdminCredentials()">Lưu thay đổi</button>
+          <p id="settingsMsg" style="font-size:12.5px;margin-top:12px;display:none;"></p>
         </div>
       </div>
     </div>
@@ -719,10 +781,34 @@
 /* ============================================================
    DỮ LIỆU & LƯU TRỮ (Firebase Firestore — dùng chung mọi thiết bị)
    ============================================================ */
-const ADMIN_USER = 'PCU';
-const ADMIN_PASS = '123';
+const DEFAULT_ADMIN_USER = 'PCU';
+const DEFAULT_ADMIN_PASS = '123';
 const CHECKLIST_DOC = db.collection('meta').doc('checklist');
+const ADMIN_DOC = db.collection('meta').doc('admin');
 const RECORDS_COL = db.collection('records');
+
+/* Thông tin đăng nhập quản lý hiện hành (nạp từ Firestore, dùng chung mọi thiết bị).
+   Mật khẩu được lưu dưới dạng băm SHA-1, không lưu chữ thường trên CSDL. */
+let adminUsername = DEFAULT_ADMIN_USER;
+let adminPassHash = null;
+async function loadAdminCreds(){
+  try{
+    const snap = await ADMIN_DOC.get();
+    if(snap.exists && snap.data().username && snap.data().passHash){
+      adminUsername = snap.data().username;
+      adminPassHash = snap.data().passHash;
+      return;
+    }
+    // Chưa từng thiết lập -> khởi tạo với tài khoản mặc định
+    adminUsername = DEFAULT_ADMIN_USER;
+    adminPassHash = await sha1Hex(DEFAULT_ADMIN_PASS);
+    await ADMIN_DOC.set({username: adminUsername, passHash: adminPassHash});
+  }catch(e){
+    console.error('Lỗi tải tài khoản quản lý, dùng tài khoản mặc định:', e);
+    adminUsername = DEFAULT_ADMIN_USER;
+    adminPassHash = await sha1Hex(DEFAULT_ADMIN_PASS);
+  }
+}
 
 const DEFAULT_CHECKLIST = [
   {label:'Thân vỏ/ sơn quanh xe', opt1:'OK', opt2:'Không OK'},
@@ -964,7 +1050,7 @@ function switchTab(tab){
 }
 
 async function switchAdminTab(sub){
-  ['list','vehicle','checklist','report','cleanup'].forEach(s=>{
+  ['list','vehicle','checklist','report','cleanup','settings'].forEach(s=>{
     document.getElementById('admin-'+s).style.display = (s===sub)?'block':'none';
   });
   document.getElementById('subBtnList').classList.toggle('active', sub==='list');
@@ -972,11 +1058,26 @@ async function switchAdminTab(sub){
   document.getElementById('subBtnChecklist').classList.toggle('active', sub==='checklist');
   document.getElementById('subBtnReport').classList.toggle('active', sub==='report');
   document.getElementById('subBtnCleanup').classList.toggle('active', sub==='cleanup');
+  document.getElementById('subBtnSettings').classList.toggle('active', sub==='settings');
   if(sub==='list'){ await renderRecordsTable(); }
   if(sub==='vehicle'){ recordsCache = await loadRecords(); populateVehicleSelectOptions(); renderVehicleHistory(); }
   if(sub==='checklist'){ checklistCache = await loadChecklist(); renderChecklistAdmin(); }
-  if(sub==='report'){ recordsCache = await loadRecords(); renderVehicleReport(); }
+  if(sub==='report'){
+    recordsCache = await loadRecords();
+    if(!document.getElementById('reportFrom').value && !document.getElementById('reportTo').value){
+      const oldest = recordsCache.reduce((min,r)=> (!min || r.date<min) ? r.date : min, null);
+      document.getElementById('reportFrom').value = oldest || '';
+      document.getElementById('reportTo').value = toDateStr(new Date());
+    }
+    renderVehicleReport();
+  }
   if(sub==='cleanup'){ recordsCache = await loadRecords(); document.getElementById('cleanupPreview').innerHTML=''; }
+  if(sub==='settings'){ document.getElementById('settingsMsg').style.display='none'; }
+}
+function resetReportRange(){
+  document.getElementById('reportFrom').value='';
+  document.getElementById('reportTo').value='';
+  renderVehicleReport();
 }
 
 /* ============================================================
@@ -1120,10 +1221,15 @@ function refreshAdminGate(){
   document.getElementById('adminArea').style.display = logged ? 'block' : 'none';
   if(logged){ switchAdminTab('list'); }
 }
-function doLogin(){
+async function doLogin(){
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
-  if(u===ADMIN_USER && p===ADMIN_PASS){
+  const btn = document.querySelector('#loginArea .btn-primary');
+  if(btn){ btn.disabled = true; btn.textContent = 'Đang kiểm tra...'; }
+  if(adminPassHash===null){ await loadAdminCreds(); }
+  const pHash = await sha1Hex(p);
+  if(btn){ btn.disabled = false; btn.textContent = 'Đăng nhập'; }
+  if(u===adminUsername && pHash===adminPassHash){
     sessionStorage.setItem('vlq_admin_session','1');
     document.getElementById('loginError').style.display='none';
     document.getElementById('loginUser').value='';
@@ -1131,6 +1237,44 @@ function doLogin(){
     refreshAdminGate();
   } else {
     document.getElementById('loginError').style.display='block';
+  }
+}
+/* Đổi tên đăng nhập / mật khẩu quản lý (yêu cầu xác nhận mật khẩu hiện tại) */
+async function changeAdminCredentials(){
+  const msg = document.getElementById('settingsMsg');
+  const showMsg = (text, ok)=>{
+    msg.style.display = 'block';
+    msg.style.color = ok ? 'var(--ok)' : 'var(--bad)';
+    msg.textContent = text;
+  };
+  const curPass = document.getElementById('stCurPass').value;
+  const newUser = document.getElementById('stNewUser').value.trim();
+  const newPass = document.getElementById('stNewPass').value;
+  const newPass2 = document.getElementById('stNewPass2').value;
+
+  if(!curPass){ showMsg('Vui lòng nhập mật khẩu hiện tại để xác nhận.', false); return; }
+  const curHash = await sha1Hex(curPass);
+  if(curHash !== adminPassHash){ showMsg('Mật khẩu hiện tại không đúng.', false); return; }
+  if(!newUser && !newPass){ showMsg('Vui lòng nhập tên đăng nhập mới hoặc mật khẩu mới để thay đổi.', false); return; }
+  if(newPass && newPass.length<3){ showMsg('Mật khẩu mới cần tối thiểu 3 ký tự.', false); return; }
+  if(newPass !== newPass2){ showMsg('Mật khẩu mới nhập lại không khớp.', false); return; }
+
+  const updated = {
+    username: newUser || adminUsername,
+    passHash: newPass ? await sha1Hex(newPass) : adminPassHash
+  };
+  try{
+    await ADMIN_DOC.set(updated);
+    adminUsername = updated.username;
+    adminPassHash = updated.passHash;
+    document.getElementById('stCurPass').value='';
+    document.getElementById('stNewUser').value='';
+    document.getElementById('stNewPass').value='';
+    document.getElementById('stNewPass2').value='';
+    showMsg('Đã cập nhật tài khoản quản lý thành công.', true);
+  }catch(e){
+    console.error('Lỗi cập nhật tài khoản quản lý:', e);
+    showMsg('Không thể lưu thay đổi, vui lòng thử lại.', false);
   }
 }
 function doLogout(){
@@ -1320,29 +1464,63 @@ function renderSummaryPanelInto(area, records, plate){
 /* ============================================================
    BÁO CÁO TỔNG QUAN CÁC XE
    ============================================================ */
+/* Đánh giá chất lượng dựa trên tỷ lệ mục "không đạt" trên tổng số mục checklist đã kiểm tra */
+function qualityRating(abnormalTotal, itemsTotal){
+  if(itemsTotal===0) return {label:'Chưa có dữ liệu', cls:''};
+  const rate = abnormalTotal / itemsTotal;
+  if(rate===0) return {label:'Tốt', cls:'badge-quality-good', rate};
+  if(rate<=0.05) return {label:'Khá', cls:'badge-quality-good', rate};
+  if(rate<=0.15) return {label:'Trung bình', cls:'badge-quality-mid', rate};
+  return {label:'Cần chú ý', cls:'badge-quality-bad', rate};
+}
+function getReportRecords(){
+  const from = document.getElementById('reportFrom')?.value;
+  const to = document.getElementById('reportTo')?.value;
+  let records = recordsCache.slice();
+  if(from) records = records.filter(r=>r.date>=from);
+  if(to) records = records.filter(r=>r.date<=to);
+  return records;
+}
 function renderVehicleReport(){
   const area = document.getElementById('reportArea');
   if(recordsCache.length===0){
     area.innerHTML = '<div class="card"><div class="empty-state">Chưa có dữ liệu kiểm tra nào.</div></div>';
     return;
   }
+  const records = getReportRecords();
+  const from = document.getElementById('reportFrom')?.value;
+  const to = document.getElementById('reportTo')?.value;
+  const rangeLabel = (from||to) ? `(${from?formatDateVN(from):'...'} — ${to?formatDateVN(to):'...'})` : '(toàn bộ thời gian)';
+
+  if(records.length===0){
+    area.innerHTML = `<div class="card"><div class="empty-state">Không có dữ liệu kiểm tra trong khoảng thời gian đã chọn.</div></div>`;
+    return;
+  }
+
   const byPlate = {};
-  recordsCache.forEach(r=>{
+  records.forEach(r=>{
     if(!byPlate[r.bienSo]) byPlate[r.bienSo] = [];
     byPlate[r.bienSo].push(r);
   });
   const plates = Object.keys(byPlate).sort();
-  const totalRecords = recordsCache.length;
-  const totalAbnormal = recordsCache.reduce((s,r)=>s+countAbnormal(r),0);
-  const totalImages = recordsCache.reduce((s,r)=>s+(r.images||[]).length,0);
+  const totalRecords = records.length;
+  const totalAbnormal = records.reduce((s,r)=>s+countAbnormal(r),0);
+  const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
+  const totalItems = records.reduce((s,r)=>s+r.checklist.length,0);
+  const overallQuality = qualityRating(totalAbnormal, totalItems);
 
   const overviewHtml = `<div class="card">
-    <h2><span class="num">Σ</span>Tổng quan chung</h2>
+    <h2><span class="num">Σ</span>Tổng quan chung <span style="font-weight:400;color:var(--text-dim);font-size:12.5px;">${rangeLabel}</span></h2>
     <div class="field-grid">
       <div class="field"><label>Tổng số xe</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${plates.length}</div></div>
       <div class="field"><label>Tổng lượt kiểm tra</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${totalRecords}</div></div>
       <div class="field"><label>Tổng bất thường ghi nhận</label><div style="font-size:20px;font-weight:700;color:var(--bad);">${totalAbnormal}</div></div>
       <div class="field"><label>Tổng số ảnh đang lưu trữ</label><div style="font-size:20px;font-weight:700;color:var(--navy);">${totalImages}</div></div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:12.5px;font-weight:600;color:var(--text-dim);margin:0;">Đánh giá chất lượng chung:</label>
+      <span class="badge-quality ${overallQuality.cls}">${overallQuality.label}</span>
+      ${overallQuality.rate!==undefined ? `<span style="font-size:12px;color:var(--text-dim);">(${(overallQuality.rate*100).toFixed(1)}% mục kiểm tra không đạt)</span>` : ''}
     </div>
   </div>`;
 
@@ -1351,6 +1529,8 @@ function renderVehicleReport(){
     const latest = recs[0];
     const abnormalTotal = recs.reduce((s,r)=>s+countAbnormal(r),0);
     const imgTotal = recs.reduce((s,r)=>s+(r.images||[]).length,0);
+    const itemsTotal = recs.reduce((s,r)=>s+r.checklist.length,0);
+    const q = qualityRating(abnormalTotal, itemsTotal);
     return `<tr>
       <td><b>${escapeHtml(p)}</b></td>
       <td>${recs.length}</td>
@@ -1358,6 +1538,7 @@ function renderVehicleReport(){
       <td>${escapeHtml(latest.km)}</td>
       <td><span class="badge-count ${abnormalTotal>0?'badge-n':'badge-0'}">${abnormalTotal}</span></td>
       <td>${imgTotal}</td>
+      <td><span class="badge-quality ${q.cls}">${q.label}</span></td>
       <td><button class="btn btn-outline btn-sm" onclick="jumpToVehicle('${p.replace(/'/g,"\\'")}')">Xem chi tiết</button></td>
     </tr>`;
   }).join('');
@@ -1365,7 +1546,7 @@ function renderVehicleReport(){
   const tableHtml = `<div class="card">
     <h2><span class="num">☰</span>Tổng quan theo từng xe</h2>
     <div class="table-wrap"><table>
-      <thead><tr><th>Biển số</th><th>Số lượt KT</th><th>Lần KT gần nhất</th><th>Km gần nhất</th><th>Tổng bất thường</th><th>Tổng ảnh</th><th></th></tr></thead>
+      <thead><tr><th>Biển số</th><th>Số lượt KT</th><th>Lần KT gần nhất</th><th>Km gần nhất</th><th>Tổng bất thường</th><th>Tổng ảnh</th><th>Chất lượng</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
   </div>`;
@@ -1379,38 +1560,50 @@ async function jumpToVehicle(plate){
 }
 
 /* ============================================================
-   XÓA HÌNH ẢNH THEO THỜI GIAN (GIẢM DUNG LƯỢNG LƯU TRỮ)
+   XÓA DỮ LIỆU CŨ THEO THỜI GIAN (ẢNH HOẶC TOÀN BỘ PHIẾU KIỂM TRA)
    ============================================================ */
-function getRecordsInCleanupRange(){
+function getRecordsInCleanupRange(requireImages){
   const from = document.getElementById('cleanupFrom').value;
   const to = document.getElementById('cleanupTo').value;
   if(!from || !to) return null;
-  return recordsCache.filter(r=> r.date>=from && r.date<=to && (r.images||[]).length>0);
+  return recordsCache.filter(r=> r.date>=from && r.date<=to && (!requireImages || (r.images||[]).length>0));
 }
 function previewCleanup(){
   const box = document.getElementById('cleanupPreview');
-  const records = getRecordsInCleanupRange();
+  const mode = document.getElementById('cleanupMode').value; // 'images' | 'records'
+  const records = getRecordsInCleanupRange(mode==='images');
   if(records===null){
     box.innerHTML = '<p style="color:var(--bad);font-size:13px;margin-top:10px;">Vui lòng chọn đầy đủ Từ ngày và Đến ngày.</p>';
     return;
   }
   if(records.length===0){
-    box.innerHTML = '<div class="empty-state">Không có hình ảnh nào trong khoảng thời gian đã chọn.</div>';
+    box.innerHTML = `<div class="empty-state">${mode==='images' ? 'Không có hình ảnh nào' : 'Không có phiếu kiểm tra nào'} trong khoảng thời gian đã chọn.</div>`;
     return;
   }
   const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
   const from = document.getElementById('cleanupFrom').value;
   const to = document.getElementById('cleanupTo').value;
-  box.innerHTML = `
-    <div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
-      <h4 style="color:var(--navy);">Sẽ xóa ${totalImages} hình ảnh của ${records.length} phiếu kiểm tra (từ ${formatDateVN(from)} đến ${formatDateVN(to)})</h4>
-      <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Dữ liệu checklist và thông tin kiểm tra vẫn được giữ nguyên, chỉ hình ảnh bị xóa khỏi bộ nhớ lưu trữ. Hành động này không thể hoàn tác.</p>
-    </div>
-    <button class="btn btn-danger btn-block" onclick="confirmCleanupImages()">🗑 Xác nhận xóa ${totalImages} hình ảnh</button>
-  `;
+
+  if(mode==='images'){
+    box.innerHTML = `
+      <div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
+        <h4 style="color:var(--navy);">Sẽ xóa ${totalImages} hình ảnh của ${records.length} phiếu kiểm tra (từ ${formatDateVN(from)} đến ${formatDateVN(to)})</h4>
+        <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Dữ liệu checklist và thông tin kiểm tra vẫn được giữ nguyên, chỉ hình ảnh bị xóa khỏi bộ nhớ lưu trữ. Hành động này không thể hoàn tác.</p>
+      </div>
+      <button class="btn btn-danger btn-block" onclick="confirmCleanupImages()">🗑 Xác nhận xóa ${totalImages} hình ảnh</button>
+    `;
+  } else {
+    box.innerHTML = `
+      <div class="summary-box" style="margin-top:14px;">
+        <h4>Sẽ xóa vĩnh viễn ${records.length} phiếu kiểm tra và toàn bộ ${totalImages} hình ảnh đính kèm (từ ${formatDateVN(from)} đến ${formatDateVN(to)})</h4>
+        <p style="font-size:12.5px;margin:0;">Toàn bộ dữ liệu checklist, thông tin kiểm tra và hình ảnh trong khoảng thời gian này sẽ bị xóa khỏi hệ thống. Hành động này không thể hoàn tác.</p>
+      </div>
+      <button class="btn btn-danger btn-block" onclick="confirmDeleteRecords()">🗑 Xác nhận xóa ${records.length} phiếu kiểm tra</button>
+    `;
+  }
 }
 async function confirmCleanupImages(){
-  const records = getRecordsInCleanupRange();
+  const records = getRecordsInCleanupRange(true);
   if(!records || records.length===0) return;
   const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
   if(!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${totalImages} hình ảnh của ${records.length} phiếu kiểm tra? Hành động này không thể hoàn tác.`)) return;
@@ -1445,6 +1638,46 @@ async function confirmCleanupImages(){
   box.innerHTML = `<div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
     <h4 style="color:var(--navy);">Hoàn tất</h4>
     <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Đã xóa ${done} hình ảnh${failed>0?`, ${failed} ảnh không xóa được tự động (ảnh cũ upload trước đó hoặc gặp lỗi — đã gỡ khỏi phiếu kiểm tra nhưng cần xóa thủ công trên Cloudinary nếu cần)`:''}.</p>
+  </div>`;
+}
+/* Xóa hẳn toàn bộ phiếu kiểm tra (bao gồm cả hình ảnh) trong khoảng thời gian đã chọn */
+async function confirmDeleteRecords(){
+  const records = getRecordsInCleanupRange(false);
+  if(!records || records.length===0) return;
+  const totalImages = records.reduce((s,r)=>s+(r.images||[]).length,0);
+  if(!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${records.length} phiếu kiểm tra (kèm ${totalImages} hình ảnh)? Hành động này không thể hoàn tác.`)) return;
+  if(!confirm(`Xác nhận lần cuối: TOÀN BỘ dữ liệu và hình ảnh của ${records.length} phiếu kiểm tra sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?`)) return;
+
+  const box = document.getElementById('cleanupPreview');
+  box.innerHTML = '<p style="font-size:13px;color:var(--text-dim);margin-top:10px;">Đang xóa dữ liệu, vui lòng đợi...</p>';
+
+  let doneRecords = 0, doneImages = 0, failedImages = 0;
+  for(const r of records){
+    const images = r.images || [];
+    for(const img of images){
+      try{
+        if(img.public_id){
+          await deleteCloudinaryImage(img.public_id);
+          doneImages++;
+        } else {
+          failedImages++;
+        }
+      }catch(e){
+        console.error('Lỗi xóa ảnh:', img.public_id, e);
+        failedImages++;
+      }
+    }
+    try{
+      await RECORDS_COL.doc(r.id).delete();
+      doneRecords++;
+    }catch(e){
+      console.error('Lỗi xóa phiếu kiểm tra:', r.id, e);
+    }
+  }
+  recordsCache = await loadRecords();
+  box.innerHTML = `<div class="summary-box" style="background:var(--teal-light);border-color:#c7e6df;margin-top:14px;">
+    <h4 style="color:var(--navy);">Hoàn tất</h4>
+    <p style="font-size:12.5px;color:var(--text-dim);margin:0;">Đã xóa ${doneRecords} phiếu kiểm tra và ${doneImages} hình ảnh${failedImages>0?`, ${failedImages} ảnh cũ không xóa được tự động trên Cloudinary`:''}.</p>
   </div>`;
 }
 
@@ -1574,6 +1807,7 @@ async function init(){
   const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate()-30);
   document.getElementById('filterFrom').value = toDateStr(monthAgo);
   document.getElementById('filterTo').value = today;
+  loadAdminCreds();
   refreshAdminGate();
 
   checklistCache = await loadChecklist();
